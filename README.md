@@ -4,13 +4,11 @@
 [![GitHub License](https://img.shields.io/github/license/khcrysalis/PlumeImpactor?color=%23C96FAD)](https://github.com/khcrysalis/PlumeImpactor/blob/main/LICENSE)
 [![Sponsor Me](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/khcrysalis)
 
-Open-source, cross-platform, and feature rich iOS sideloading application. Supporting macOS[^1], Linux[^2], and Windows[^3].
+Open-source, cross-platform, and feature rich iOS sideloading application. Supporting macOS, Linux[^1], and Windows[^2].
 
-[^1]: On macOS, it's highly important you login to the [Internet Accounts](https://khcrysalis.dev/internetaccounts) pane in macOS's settings before logging into Impactor, that way we're able to login seemlessly using Apple private services.
+[^1]: On Linux, usbmuxd must be installed on your system. Don't worry though, it comes with most popular distributions by default already! However, due to some distributions [udev](https://man7.org/linux/man-pages/man7/udev.7.html) rules `usbmuxd` may stop running after no devices are connected causing Impactor to not detect the device after plugging it in. You can mitigate this by plugging your phone first then restarting the app.
 
-[^2]: On Linux, usbmuxd must be installed on your system. Don't worry though, it comes with most popular distributions by default already! However, due to some distributions [udev](https://man7.org/linux/man-pages/man7/udev.7.html) rules `usbmuxd` may stop running after no devices are connected causing Impactor to not detect the device after plugging it in. You can mitigate this by plugging your phone first then restarting the app.
-
-[^3]: On Windows, [iTunes](https://support.apple.com/en-us/106372) must be downloaded so Impactor is able to use the drivers for interacting with Apple devices.
+[^2]: On Windows, [iTunes](https://support.apple.com/en-us/106372) must be downloaded so Impactor is able to use the drivers for interacting with Apple devices.
 
 | ![Demo of app](demo.webp)   |
 | :----------------------:    |
@@ -20,7 +18,7 @@ Open-source, cross-platform, and feature rich iOS sideloading application. Suppo
 
 - User friendly and clean UI.
 - Supports Linux.
-- Sign and sideload applications to iOS & Mac with your Apple ID.
+- Sign and sideload applications on iOS 9.0+ & Mac with your Apple ID.
 - Simple customization options for the app.
 - Generates P12 for SideStore/AltStore to use, similar to how Altserver works.
 - Automatically populate pairing files for specific apps like SideStore, Antrag, and Protokolle.
@@ -74,10 +72,7 @@ sudo dnf install clang-devel pkg-config gtk3-devel libpng-devel libjpeg-devel me
 
 #### macOS Requirements
 
-```sh
-# Xcode Command Line Tools
-xcode-select --install
-```
+- [Xcode](https://developer.apple.com/xcode/) or [Command Line Tools](https://developer.apple.com/download/all/)
 
 #### Windows Requirements
 
