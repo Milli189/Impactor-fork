@@ -1,41 +1,31 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod frame;
-mod handlers;
-mod pages;
+mod appearance;
+mod defaults;
+mod screen;
+mod subscriptions;
+mod tray;
 
-#[tokio::main]
-async fn main() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    _ = rustls::crypto::ring::default_provider()
-        .install_default()
-        .unwrap();
+pub const APP_NAME: &str = "Impactor";
+pub const APP_NAME_VERSIONED: &str = concat!("Impactor", " - Version ", env!("CARGO_PKG_VERSION"));
 
-    let _ = wxdragon::main(|_| {
-        #[cfg(target_os = "windows")]
-        {
-            use wxdragon::{AppAppearance, appearance::Appearance};
-            if let Some(app) = wxdragon::app::get_app() {
-                app.set_appearance(Appearance::Dark);
-            }
-        }
+fn main() -> iced::Result {
+    env_logger::init();
+    let _ = rustls::crypto::ring::default_provider().install_default();
 
-        frame::PlumeFrame::new().show();
-    });
-}
+    #[cfg(target_os = "linux")]
+    {
+        gtk::init().expect("GTK init failed");
+    }
 
-use thiserror::Error as ThisError;
-
-#[derive(Debug, ThisError)]
-pub enum Error {
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("Plist error: {0}")]
-    Plist(#[from] plist::Error),
-    #[error("Idevice error: {0}")]
-    Idevice(#[from] idevice::IdeviceError),
-    #[error("Core error: {0}")]
-    Core(#[from] plume_core::Error),
-    #[error("Utils error: {0}")]
-    Utils(#[from] plume_utils::Error),
+    iced::daemon(
+        screen::Impactor::new,
+        screen::Impactor::update,
+        screen::Impactor::view,
+    )
+    .subscription(screen::Impactor::subscription)
+    .title(APP_NAME_VERSIONED)
+    .theme(appearance::PlumeTheme::default().to_iced_theme())
+    .settings(defaults::default_settings())
+    .run()
 }
