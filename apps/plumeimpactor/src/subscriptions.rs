@@ -326,7 +326,7 @@ pub(crate) async fn run_installation(
         SignerInstallMode::Install => {
             if let Some(dev) = &device {
                 if !dev.is_mac {
-                    send("Installing...".to_string(), 70);
+                    send("Sending to device...".to_string(), 70);
 
                     let tx_clone = tx.clone();
                     dev.install_app(&package_file.bundle_dir(), move |progress: i32| {

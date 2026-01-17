@@ -46,9 +46,6 @@ impl ProgressScreen {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::InstallationProgress(status, progress) => {
-                let mut status = status;
-                let mut progress = progress;
-
                 self.status = status.clone();
                 self.progress = progress;
 
@@ -105,6 +102,7 @@ impl ProgressScreen {
         let progress_bar = iced::widget::progress_bar(0.0..=100.0, self.progress as f32);
 
         let screen_content = column![
+            text("Installing application, this will take a moment. Do not disconnect the device until finished.").size(14),
             text(format!("{}% – {}", self.progress, self.status)).size(14),
             progress_bar,
             container(text("")).height(Fill),
