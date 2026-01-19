@@ -29,12 +29,15 @@ tray-icon = { version = "0.21.2", default-features = false }
 image = "0.25"
 rfd = "0.16.0"
 open = "5.3.3"
+notify-rust = "4.11.7"
+single-instance = "0.3.3"
+auto-launcher = "0.6.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 plume_gestalt = { path = "../../crates/plume_gestalt" }
 
-[target.'cfg(target_os = "windows")'.build-dependencies]
-winres = "0.1"
+[build-dependencies]
+winres = { git = "https://github.com/Nilstrieb/winres", branch = "linking-flags" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
