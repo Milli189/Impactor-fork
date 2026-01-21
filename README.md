@@ -39,6 +39,12 @@ Auto-refresh will not work the same as it would on other platforms like macOS/Wi
 
 Visit [releases](https://github.com/khcrysalis/PlumeImpactor/releases) and get the latest version for your computer.
 
+Alternatively, on *macOS* you can also download it from homebrew:
+
+```sh
+brew install --cask impactor
+```
+
 ## How it works
 
 How it works is that we try to replicate what [Xcode](https://developer.apple.com/xcode/) would do but in our own application, by using your Apple Account (which serves the purpose of being a "Developer") so we can request certificates, provisioning profiles, and register your device from Apple themselves. 
