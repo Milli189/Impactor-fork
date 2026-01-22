@@ -18,6 +18,7 @@ Auto-refresh will not work the same as it would on other platforms like macOS/Wi
 ### Features
 
 - User friendly and clean UI.
+- Supports installing [SideStore](https://github.com/SideStore/SideStore) and [LiveContainer](https://github.com/LiveContainer/LiveContainer) properly.
 - Supports Linux.
 - Sign and sideload applications on iOS 9.0+ & Mac with your Apple ID.
   - Installing with [AppSync](https://github.com/akemin-dayo/AppSync) is supported.
@@ -39,7 +40,15 @@ Auto-refresh will not work the same as it would on other platforms like macOS/Wi
 
 Visit [releases](https://github.com/khcrysalis/PlumeImpactor/releases) and get the latest version for your computer.
 
-Alternatively, on *macOS* you can also download it from homebrew:
+Impactor is also available on flatpak & homebrew.
+
+**Linux:**
+
+<a href="https://flathub.org/en/apps/dev.khcrysalis.PlumeImpactor">
+  <img src="https://dl.flathub.org/assets/badges/flathub-badge-en.svg" width="200px">
+</a>
+
+**macOS:**
 
 ```sh
 brew install --cask impactor
@@ -63,7 +72,7 @@ That's the entire gist of how this works! Of course its very short and brief, ho
 
 Impactor also allows the user to generate a pairing file for applications to talk directly to the device remotely. This pairing file is device specific and will become invalid if you ever re-trust/update/reset.
 
-Supported apps:
+Supported apps for pairing file:
 - `SideStore`
 - `Feather`
 - `SparseBox`
@@ -73,55 +82,6 @@ Supported apps:
 - `StikDebug`
 
 You can retrieve this file by either sideloading the supported app of your choice, or going to the `Utilities` page when a device is connected and press install for the supported app. Head over to the [downloads](https://github.com/khcrysalis/PlumeImpactor/releases).
-
-## Structure
-
-The project is seperated in multiple modules, all serve single or multiple uses depending on their importance.
-
-| Module               | Description                                                                                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `apps/plumeimpactor` | GUI interface for the crates shown below, backend using wxWidgets (with a rust ffi wrapper, wxDragon).                        |
-| `apps/plumesign`     | Simple CLI interface for signing, using `clap`.                                                                               |
-| `crates/core`.       | Handles all api request used for communicating with Apple developer services, along with providing auth for Apple's grandslam |
-| `crates/gestalt`     | Wrapper for `libMobileGestalt.dylib`, used for obtaining your Mac's UDID for Apple Silicon sideloading.                       |
-| `crates/utils`       | Shared code between GUI and CLI, contains signing and modification logic, and helpers.                                        |
-| `crates/shared`      | Shared code between GUI and CLI, contains keychain functionality and shared datapaths.                                        |
-
-## Building
-
-Building is going to be a bit convoluted for each platform, each having their own unique specifications, but the best reference for building should be looking at how [GitHub actions](./.github/workflows/build.yml) does it.
-
-You need:
-- [Rust](https://rustup.rs/).
-- [CMake](https://cmake.org/download/) (and a c++ compiler).
-
-```sh
-# Building / testing GUI
-cargo run --bin plumeimpactor
-# Building / texting CLI
-cargo run --bin plumesign -- <args>
-```
-
-Extra requirements are shown below for building if you don't have these already, and trust me, it is convoluted.
-
-#### Linux Requirements
-
-```sh
-# Ubuntu/Debian
-sudo apt-get install libclang-dev pkg-config libgtk-3-dev libpng-dev libjpeg-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-dev libexpat1-dev libtiff-dev
-
-# Fedora/RHEL
-sudo dnf install clang-devel pkg-config gtk3-devel libpng-devel libjpeg-devel mesa-libGL-devel mesa-libGLU-devel libxkbcommon-devel expat-devel libtiff-devel
-```
-
-#### macOS Requirements
-
-- [Xcode](https://developer.apple.com/xcode/) or [Command Line Tools](https://developer.apple.com/download/all/).
-
-#### Windows Requirements
-
-- [Visual Studio 2022 Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022).
-- Windows 10/11 SDK.
 
 ## Sponsors
 
