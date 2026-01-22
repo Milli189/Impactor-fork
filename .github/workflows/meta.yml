@@ -13,6 +13,8 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Update metainfo
         run: ./update_meta.sh
 
