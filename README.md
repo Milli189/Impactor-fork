@@ -103,6 +103,7 @@ You can retrieve this file by either sideloading the supported app of your choic
 ## Acknowledgements
 
 - [SAMSAM](https://github.com/khcrysalis) – The maker.
+- [Paige](https://github.com/paigely) – Icon & flatpak distribution.
 - [SideStore](https://github.com/SideStore/apple-private-apis) – Grandslam auth & Omnisette.
 - [gms.py](https://gist.github.com/JJTech0130/049716196f5f1751b8944d93e73d3452) – Grandslam auth API references.
 - [Sideloader](https://github.com/Dadoum/Sideloader) – Apple Developer API references.
