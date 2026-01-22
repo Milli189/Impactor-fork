@@ -50,6 +50,23 @@
   </branding>
   
   <releases>
+    <release version="2.0.0" date="2026-1-19">
+      <url type="details">https://github.com/khcrysalis/PlumeImpactor/releases/tag/v2.0.0</url>
+      <description>
+        <p>Full rewriting using iced, many new features.</p>
+        <ul>
+          <li>Adds Auto Refresh [BETA]</li>
+          <li>Adds new tray icon, similar to Sideloadly.</li>
+          <li>Adds export P12 feature in settings.</li>
+          <li>Adds device utilities like adding pairing files.</li>
+          <li>Adds team-id picker in settings.</li>
+          <li>Adds replace Cydia Substrate with ElleKit for users on iOS 26.</li>
+          <li>Adds auto-start option in settings for auto-refresh.</li>
+          <li>Fixes issue where bundle names without ascii characters would fail when registering</li>
+        </ul>
+      </description>
+    </release>
+
     <release version="1.4.1" date="2026-1-10">
       <url type="details">https://github.com/khcrysalis/PlumeImpactor/releases/tag/v1.4.1</url>
       <description>
