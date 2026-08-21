@@ -1,15 +1,17 @@
-# <img src="https://github.com/user-attachments/assets/18f2eff4-546f-4365-98eb-afb19b13dc13" width="25" height="25" /> Impactor
+# Impactor
 
-[![GitHub Release](https://img.shields.io/github/v/release/khcrysalis/PlumeImpactor?include_prereleases)](https://github.com/khcrysalis/PlumeImpactor/releases)
-[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/khcrysalis/PlumeImpactor/total)](https://github.com/khcrysalis/PlumeImpactor/releases)
-[![GitHub License](https://img.shields.io/github/license/khcrysalis/PlumeImpactor?color=%23C96FAD)](https://github.com/khcrysalis/PlumeImpactor/blob/main/LICENSE)
-[![Sponsor Me](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/khcrysalis)
+[![GitHub Release](https://img.shields.io/github/v/release/claration/Impactor?include_prereleases)](https://github.com/claration/Impactor/releases)
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/claration/Impactor/total)](https://github.com/claration/Impactor/releases)
+[![GitHub License](https://img.shields.io/github/license/claration/Impactor?color=%23C96FAD)](https://github.com/claration/Impactor/blob/main/LICENSE)
+[![Sponsor Me](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/claration)
 
 Open-source, cross-platform, and feature rich iOS sideloading application. Supporting macOS, Linux[^1], and Windows[^2].
 
 [^1]: On Linux, usbmuxd must be installed on your system. Don't worry though, it comes with most popular distributions by default already! However, due to some distributions [udev](https://man7.org/linux/man-pages/man7/udev.7.html) rules `usbmuxd` may stop running after no devices are connected causing Impactor to not detect the device after plugging it in. You can mitigate this by plugging your phone first then restarting the app. \
 \
-Auto-refresh will not work the same as it would on other platforms like macOS/Windows, due to `usbmuxd` lacking WiFi connectivity so it will attempt to do it automatically only when a device is plugged in, we are looking for a proper solution though.
+Auto-refresh will not work the same as it would on other platforms like macOS/Windows, due to `usbmuxd` lacking WiFi connectivity so it will attempt to do it automatically only when a device is plugged in, we are looking for a proper solution though.\
+\
+Some distributions (like Bazzite) may need you to run `sudo update-crypto-policies` so `usbmuxd` ends up detecting the device again.
 
 [^2]: On Windows, [iTunes](https://support.apple.com/en-us/106372) must be downloaded so Impactor is able to use the drivers for interacting with Apple devices.
 
@@ -73,32 +75,34 @@ That's the entire gist of how this works! Of course its very short and brief, ho
 Impactor also allows the user to generate a pairing file for applications to talk directly to the device remotely. This pairing file is device specific and will become invalid if you ever re-trust/update/reset.
 
 Supported apps for pairing file:
-- `SideStore`
-- `Feather`
-- `SparseBox`
-- `LiveContainer + SideStore`
-- `Antrag`
-- `Protokolle`
-- `StikDebug`
+- [`SideStore`](https://github.com/SideStore/SideStore): Uses your Apple ID to install iOS apps.
+- [`Feather`](https://github.com/khcrysalis/Feather): Uses raw certificates to install iOS apps.
+- [`SparseBox`](https://github.com/khanhduytran0/SparseBox): Device customizer.
+- [`LiveContainer + SideStore`](https://github.com/LiveContainer/LiveContainer) Uses your Apple ID to install iOS apps.
+- [`Antrag`](https://github.com/khcrysalis/Antrag): List currently installed iOS apps.
+- [`Protokolle`](https://github.com/khcrysalis/Protokolle): View logs from system processes.
+- [`StikDebug`](https://github.com/StephenDev0/StikDebug): Enable JIT for iOS apps.
+- [`EnsWilde`](https://github.com/YangJiiii/EnsWilde): Device customizer.
+- [`ByeTunes`](https://github.com/EduAlexxis/ByeTunes): Import mp3 files to the Music App.
+- [`Reynard Browser`](https://github.com/minh-ton/reynard-browser): An experimental Gecko-based web browser for iOS 14+.
+- [`Ksign`](https://github.com/Nyasami/Ksign): Uses raw certificates to install iOS apps.
 
 You can retrieve this file by either sideloading the supported app of your choice, or going to the `Utilities` page when a device is connected and press install for the supported app. Head over to the [downloads](https://github.com/khcrysalis/PlumeImpactor/releases).
 
+## Translating
+
+Impactor now has translation support, all localizations are located in `locales/<lang>.toml`.
+
+To add a new language, copy `en.toml` to `<language_code>.toml` so all the strings are copied appropriately, and start translating!
+
+To properly contribute and test potentially test localizations, you can head over to the [contributing guide](./CONTRIBUTING.md).
+
 ## Sponsors
 
-| Thanks to all my [sponsors](https://github.com/sponsors/khcrysalis)!! |
+| Thanks to all my [sponsors](https://github.com/sponsors/claration)!! |
 |:-:|
-| <img src="https://raw.githubusercontent.com/khcrysalis/github-sponsor-graph/main/graph.png"> |
+| <img src="https://sponsors.claration.dev/sponsors.png"> |
 | _**"samara is cute" - Vendicated**_ |
-
-## Star History
-
-<a href="https://star-history.com/#khcrysalis/plumeimpactor&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=khcrysalis/plumeimpactor&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=khcrysalis/plumeimpactor&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=khcrysalis/plumeimpactor&type=Date" />
- </picture>
-</a>
 
 ## Acknowledgements
 
@@ -106,6 +110,7 @@ You can retrieve this file by either sideloading the supported app of your choic
 - [Paige](https://github.com/paigely) – Icon & flatpak distribution.
 - [SideStore](https://github.com/SideStore/apple-private-apis) – Grandslam auth & Omnisette.
 - [gms.py](https://gist.github.com/JJTech0130/049716196f5f1751b8944d93e73d3452) – Grandslam auth API references.
+- [isideload](https://github.com/nab138/isideload) - Code for properly grabbing Xcode token.
 - [Sideloader](https://github.com/Dadoum/Sideloader) – Apple Developer API references.
 - [PyDunk](https://github.com/nythepegasus/PyDunk) – `v1` Apple Developer API references.
 - [idevice](https://github.com/jkcoxson/idevice) – Used for communication with `installd`, specifically for sideloading the apps to your devices.

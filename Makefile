@@ -122,6 +122,15 @@ ifeq ($(APPIMAGE),1)
 			--appdir $(APPIMAGE_APPDIR) \
 			--executable target/$(PROFILE)/plumeimpactor \
 			--desktop-file package/linux/$(ID).desktop \
+			--exclude-library='libglib-2.0.so*' \
+			--exclude-library='libgobject-2.0.so*' \
+			--exclude-library='libgio-2.0.so*' \
+			--exclude-library='libgmodule-2.0.so*' \
+			--exclude-library='libgthread-2.0.so*' \
+			--exclude-library='libxkbcommon.so*' \
+			--exclude-library='libxkbcommon-x11.so*' \
+			--exclude-library='libX11.so*' \
+			--exclude-library='libxcb.so*' \
 			$$lib_args \
 			--output appimage
 	@rm /tmp/linuxdeploy.appimage
@@ -138,7 +147,8 @@ windows:
 ifeq ($(NSIS),1)
 	@cp target/$(PROFILE)/plumeimpactor.exe dist/nsis/
 	@cp -r package/windows/* dist/nsis/
-	@makensis dist/nsis/installer.nsi
+	@VERSION=$$(awk '/\[workspace.package\]/,/^$$/' Cargo.toml | sed -nE 's/version *= *"([^"]*)".*/\1/p'); \
+		makensis -DAPPVERSION=$$VERSION dist/nsis/installer.nsi
 	@mv dist/nsis/installer.exe dist/Impactor-$(SUFFIX)-setup.exe
 endif
 
@@ -149,7 +159,6 @@ ifneq ($(PREFIX),$(APPIMAGE_APPDIR)/usr)
 	@install -Dm755 target/$(PROFILE)/plumeimpactor $(PREFIX)/bin/plumeimpactor
 endif
 	@install -Dm644 package/linux/$(ID).desktop $(PREFIX)/share/applications/$(ID).desktop
-	@install -Dm644 package/linux/$(ID).metainfo.xml $(PREFIX)/share/metainfo/$(ID).metainfo.xml
 	@install -Dm644 package/linux/icons/hicolor/16x16/apps/$(ID).png $(PREFIX)/share/icons/hicolor/16x16/apps/$(ID).png
 	@install -Dm644 package/linux/icons/hicolor/32x32/apps/$(ID).png $(PREFIX)/share/icons/hicolor/32x32/apps/$(ID).png
 	@install -Dm644 package/linux/icons/hicolor/48x48/apps/$(ID).png $(PREFIX)/share/icons/hicolor/48x48/apps/$(ID).png

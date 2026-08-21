@@ -1,3 +1,4 @@
+// TODO: move to plist macro
 use futures::future::try_join_all;
 use plist::Value;
 use std::sync::Arc;
@@ -98,30 +99,95 @@ impl Signer {
                         .into_iter()
                         .collect::<Vec<_>>();
 
+                    let id_key = match self.options.app {
+                        SignerApp::StikStore => "MachineID",
+                        _ => "ALTCertificateID",
+                    };
+                    let cert_file_name = match self.options.app {
+                        SignerApp::StikStore => "Certificate.p12",
+                        _ => "ALTCertificate.p12",
+                    };
+
                     match self.options.app {
                         SignerApp::LiveContainerAndSideStore => {
                             if let Some(embedded_bundle) = bundles
                                 .iter()
                                 .find(|b| b.bundle_dir().ends_with("SideStoreApp.framework"))
                             {
-                                embedded_bundle
-                                    .set_info_plist_key("ALTCertificateID", &**serial_number)?;
+                                embedded_bundle.set_info_plist_key(id_key, &**serial_number)?;
                                 fs::write(
-                                    embedded_bundle.bundle_dir().join("ALTCertificate.p12"),
+                                    embedded_bundle.bundle_dir().join(cert_file_name),
                                     p12_data,
                                 )
                                 .await?;
                             }
                         }
                         SignerApp::SideStore | SignerApp::AltStore => {
-                            bundle.set_info_plist_key("ALTCertificateID", &**serial_number)?;
-                            fs::write(bundle.bundle_dir().join("ALTCertificate.p12"), p12_data)
-                                .await?;
+                            bundle.set_info_plist_key(id_key, &**serial_number)?;
+                            fs::write(bundle.bundle_dir().join(cert_file_name), p12_data).await?;
                         }
                         _ => {}
                     }
                 }
             }
+        }
+
+        if let Some(custom_icon) = &self.options.custom_icon {
+            let image_sizes: &[(&str, u32)] = &[
+                ("FRIcon60x60@2x.png", 120),
+                ("FRIcon76x76@2x~ipad.png", 152),
+            ];
+
+            let img = image::open(custom_icon)?;
+
+            for &(file_name, size) in image_sizes {
+                let filled = img.resize_to_fill(size, size, image::imageops::FilterType::Lanczos3);
+
+                let out_path = bundle.bundle_dir().join(file_name);
+                filled.save_with_format(&out_path, image::ImageFormat::Png)?;
+            }
+
+            let cf_bundle_icons = Value::Dictionary({
+                let mut primary = plist::Dictionary::new();
+                primary.insert(
+                    "CFBundleIconFiles".to_string(),
+                    Value::Array(vec![Value::String("FRIcon60x60".to_string())]),
+                );
+                primary.insert(
+                    "CFBundleIconName".to_string(),
+                    Value::String("FRIcon".to_string()),
+                );
+                let mut d = plist::Dictionary::new();
+                d.insert(
+                    "CFBundlePrimaryIcon".to_string(),
+                    Value::Dictionary(primary),
+                );
+                d
+            });
+
+            let cf_bundle_icons_ipad = Value::Dictionary({
+                let mut primary = plist::Dictionary::new();
+                primary.insert(
+                    "CFBundleIconFiles".to_string(),
+                    Value::Array(vec![
+                        Value::String("FRIcon60x60".to_string()),
+                        Value::String("FRIcon76x76".to_string()),
+                    ]),
+                );
+                primary.insert(
+                    "CFBundleIconName".to_string(),
+                    Value::String("FRIcon".to_string()),
+                );
+                let mut d = plist::Dictionary::new();
+                d.insert(
+                    "CFBundlePrimaryIcon".to_string(),
+                    Value::Dictionary(primary),
+                );
+                d
+            });
+
+            bundle.set_info_plist_key("CFBundleIcons", cf_bundle_icons)?;
+            bundle.set_info_plist_key("CFBundleIcons~ipad", cf_bundle_icons_ipad)?;
         }
 
         let has_tweaks = self.options.tweaks.as_ref().is_some_and(|t| !t.is_empty());
@@ -225,7 +291,11 @@ impl Signer {
 
                 if let Some(app_groups) = macho.app_groups_for_entitlements() {
                     let mut app_group_ids: Vec<String> = Vec::new();
+
                     for group in &app_groups {
+                        if !group.starts_with("group.") {
+                            continue;
+                        }
                         let mut group_name = format!("{group}.{team_id}");
 
                         if is_refresh {
@@ -236,6 +306,15 @@ impl Signer {
                             .await?;
                         app_group_ids.push(group_id.application_group);
                     }
+
+                    let default_group = format!("group.{}.{}", id, team_id);
+                    if !app_group_ids.contains(&default_group) {
+                        let default_group_id = session
+                            .qh_ensure_app_group(&team_id, &default_group, &default_group)
+                            .await?;
+                        app_group_ids.push(default_group_id.application_group);
+                    }
+
                     if !is_refresh {
                         if signer_settings.app == SignerApp::SideStore
                             || signer_settings.app == SignerApp::AltStore
@@ -369,6 +448,12 @@ impl Signer {
         }
 
         if self.options.mode != SignerMode::Adhoc {
+            if self.options.embedding.single_profile {
+                if let Some(ent_path) = &self.options.custom_entitlements {
+                    let ent_bytes = std::fs::read(ent_path)?;
+                    entitlements_xml = String::from_utf8_lossy(&ent_bytes).to_string();
+                }
+            }
             settings.set_entitlements_xml(SettingsScope::Main, entitlements_xml)?;
         }
 

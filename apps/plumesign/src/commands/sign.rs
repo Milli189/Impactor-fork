@@ -93,9 +93,15 @@ pub async fn execute(args: SignArgs) -> Result<()> {
     } else if args.apple_id {
         let session = get_authenticated_account().await?;
         let team_id = teams(&session).await?;
-        let cert_identity =
-            CertificateIdentity::new_with_session(&session, get_data_path(), None, &team_id, false)
-                .await?;
+        let cert_identity = CertificateIdentity::new_with_session(
+            &session,
+            get_data_path(),
+            None,
+            &team_id,
+            false,
+            None,
+        )
+        .await?;
 
         options.mode = SignerMode::Pem;
         (
@@ -196,10 +202,14 @@ pub async fn execute(args: SignArgs) -> Result<()> {
             let archived_path = pkg.get_archive_based_on_path(&args.package.clone())?;
             tokio::fs::copy(&archived_path, &output_path).await?;
             log::info!("Saved signed package to: {}", output_path.display());
-            pkg.remove_package_stage();
+            if std::env::var("PLUME_DELETE_AFTER_FINISHED").is_err() {
+                pkg.remove_package_stage();
+            }
         } else {
             log::info!("Signed .ipa successfully (not archived, use -o to save)");
-            pkg.remove_package_stage();
+            if std::env::var("PLUME_DELETE_AFTER_FINISHED").is_err() {
+                pkg.remove_package_stage();
+            }
         }
     }
 

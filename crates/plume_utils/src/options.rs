@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 /// Settings for the signer process.
 #[derive(Clone, Debug)]
 pub struct SignerOptions {
@@ -7,6 +9,9 @@ pub struct SignerOptions {
     pub custom_identifier: Option<String>,
     /// Custom version override.
     pub custom_version: Option<String>,
+    pub custom_icon: Option<PathBuf>,
+    /// Custom entitlements plist to embed (only used when single_profile is set).
+    pub custom_entitlements: Option<PathBuf>,
     /// Feature support options.
     pub features: SignerFeatures,
     /// Embedding options.
@@ -16,7 +21,7 @@ pub struct SignerOptions {
     /// Installation mode.
     pub install_mode: SignerInstallMode,
     /// Tweaks to apply before signing.
-    pub tweaks: Option<Vec<std::path::PathBuf>>,
+    pub tweaks: Option<Vec<PathBuf>>,
     /// App type.
     pub app: SignerApp,
     /// Apply autorefresh
@@ -29,6 +34,8 @@ impl Default for SignerOptions {
             custom_name: None,
             custom_identifier: None,
             custom_version: None,
+            custom_icon: None,
+            custom_entitlements: None,
             features: SignerFeatures::default(),
             embedding: SignerEmbedding::default(),
             mode: SignerMode::default(),
@@ -115,7 +122,7 @@ impl std::fmt::Display for SignerMode {
         match self {
             SignerMode::Pem => write!(f, "Apple ID"),
             SignerMode::Adhoc => write!(f, "Adhoc"),
-            SignerMode::None => write!(f, "Modify"),
+            SignerMode::None => write!(f, "No Modify"),
         }
     }
 }
@@ -159,6 +166,10 @@ pub enum SignerApp {
     SparseBox,
     EnsWilde,
     ByeTunes,
+    StikStore,
+    Reynard,
+    Ksign,
+    AutoCapture,
 }
 
 impl std::fmt::Display for SignerApp {
@@ -176,6 +187,10 @@ impl std::fmt::Display for SignerApp {
             SparseBox => "SparseBox",
             EnsWilde => "EnsWilde",
             ByeTunes => "ByeTunes",
+            StikStore => "StikStore",
+            Reynard => "Reynard",
+            Ksign => "Ksign",
+            AutoCapture => "Dev Auto Capture",
         };
         write!(f, "{}", name)
     }
@@ -199,6 +214,11 @@ impl SignerApp {
             ("com.kdt.SparseBox", SignerApp::SparseBox),
             ("com.yangjiii.EnsWilde", SignerApp::EnsWilde),
             ("com.EduAlexxis.MusicManager", SignerApp::ByeTunes),
+            ("me.stik.store", SignerApp::StikStore),
+            ("app.stik.store", SignerApp::StikStore),
+            ("com.minh-ton.Reynard", SignerApp::Reynard),
+            ("nya.asami.ksign", SignerApp::Ksign),
+            ("com.halfeatentoast.devcapture", SignerApp::AutoCapture),
         ];
 
         for &(known_id, app) in KNOWN_APPS {
@@ -241,6 +261,10 @@ impl SignerApp {
             ("sparsebox", SignerApp::SparseBox),
             ("enswilde", SignerApp::EnsWilde),
             ("byetunes", SignerApp::ByeTunes),
+            ("stikstore", SignerApp::StikStore),
+            ("reynard", SignerApp::Reynard),
+            ("ksign", SignerApp::Ksign),
+            ("dev auto capture", SignerApp::AutoCapture),
         ];
 
         for &(needle, app) in KNOWN_APP_NAMES {
@@ -265,14 +289,14 @@ impl SignerApp {
     pub fn pairing_file_path(&self) -> Option<&'static str> {
         use SignerApp::*;
         match self {
-            Antrag | Feather | Protokolle | StikDebug | SparseBox | EnsWilde => {
-                Some("/Documents/pairingFile.plist")
-            }
+            Antrag | Feather | Protokolle | StikDebug | SparseBox | EnsWilde | StikStore
+            | Reynard | Ksign => Some("/Documents/pairingFile.plist"),
             SideStore => Some("/Documents/ALTPairingFile.mobiledevicepairing"),
             LiveContainerAndSideStore | LiveContainer => {
                 Some("/Documents/SideStore/Documents/ALTPairingFile.mobiledevicepairing")
             }
             ByeTunes => Some("/Documents/pairing file/pairingFile.plist"),
+            AutoCapture => Some("/Documents/rpPairingFile.plist"),
             _ => None,
         }
     }

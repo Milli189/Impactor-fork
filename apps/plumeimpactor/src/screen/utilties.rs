@@ -1,7 +1,9 @@
-use iced::widget::{button, column, container, row, rule, scrollable, text};
+use iced::widget::{button, column, container, row, rule, scrollable, text, toggler};
 use iced::{Center, Color, Element, Task};
+use rust_i18n::t;
 
 use crate::appearance;
+use crate::defaults::get_data_path;
 use plume_utils::{Device, SignerAppReal};
 use std::collections::HashMap;
 
@@ -35,14 +37,16 @@ impl StatusMessage {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum Message {
-    RefreshApps,
+    RefreshApps(bool),
     AppsLoaded(Result<Vec<SignerAppReal>, String>),
     InstallPairingFile(SignerAppReal),
     Trust,
     PairResult(Result<(), String>),
     InstallPairingResult(String, Result<(), String>),
+    ToggleRPPairing(bool),
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +57,7 @@ pub struct UtilitiesScreen {
     app_statuses: HashMap<String, StatusMessage>,
     loading: bool,
     trust_loading: bool,
+    pub rppairing_enabled: bool,
 }
 
 impl UtilitiesScreen {
@@ -64,10 +69,13 @@ impl UtilitiesScreen {
             app_statuses: HashMap::new(),
             loading: false,
             trust_loading: false,
+            rppairing_enabled: false,
         };
 
         if screen.device.as_ref().map(|d| d.is_mac).unwrap_or(false) {
-            screen.status_message = Some(StatusMessage::error("macOS devices are not supported"));
+            screen.status_message = Some(StatusMessage::error(t!(
+                "utilities_mac_devices_not_supported"
+            )));
         }
 
         screen
@@ -75,7 +83,7 @@ impl UtilitiesScreen {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::RefreshApps => {
+            Message::RefreshApps(_) => {
                 self.loading = true;
                 self.status_message = None;
                 self.app_statuses.clear();
@@ -135,13 +143,28 @@ impl UtilitiesScreen {
                     let app_key = Self::app_key(&app);
                     let (tx, rx) = std::sync::mpsc::sync_channel(1);
 
+                    let rppairing_enabled = self.rppairing_enabled;
+
                     std::thread::spawn(move || {
                         let rt = tokio::runtime::Runtime::new().unwrap();
                         let result = rt.block_on(async move {
-                            device
-                                .install_pairing_record(&bundle_id, &pairing_path)
-                                .await
-                                .map_err(|e| format!("Failed to install pairing record: {}", e))
+                            if rppairing_enabled {
+                                device
+                                    .install_remote_pairing_record(
+                                        &bundle_id,
+                                        &pairing_path,
+                                        get_data_path(),
+                                    )
+                                    .await
+                                    .map_err(|e| {
+                                        format!("Failed to install remote pairing record: {}", e)
+                                    })
+                            } else {
+                                device
+                                    .install_pairing_record(&bundle_id, &pairing_path)
+                                    .await
+                                    .map_err(|e| format!("Failed to install pairing record: {}", e))
+                            }
                         });
                         let _ = tx.send(result);
                     });
@@ -199,7 +222,7 @@ impl UtilitiesScreen {
                 match result {
                     Ok(_) => {
                         self.status_message =
-                            Some(StatusMessage::success("Device paired successfully!"));
+                            Some(StatusMessage::success(t!("utilities_paired_success")));
                     }
                     Err(e) => {
                         self.status_message = Some(StatusMessage::error(e));
@@ -209,11 +232,15 @@ impl UtilitiesScreen {
             }
             Message::InstallPairingResult(app_key, result) => {
                 let status = match result {
-                    Ok(_) => StatusMessage::success("Pairing file installed successfully!"),
+                    Ok(_) => StatusMessage::success(t!("utilities_device_paired_success")),
                     Err(e) => StatusMessage::error(e),
                 };
                 self.app_statuses.insert(app_key, status);
                 Task::none()
+            }
+            Message::ToggleRPPairing(enabled) => {
+                self.rppairing_enabled = enabled;
+                Task::perform(async move { Message::RefreshApps(enabled) }, |msg| msg)
             }
         }
     }
@@ -230,8 +257,9 @@ impl UtilitiesScreen {
                 .spacing(4),
             );
         } else {
-            content =
-                content.push(text("No device connected").color(Color::from_rgb(0.7, 0.7, 0.7)));
+            content = content.push(
+                text(t!("utilities_no_device_connected")).color(Color::from_rgb(0.7, 0.7, 0.7)),
+            );
         }
 
         if let Some(ref status) = self.status_message {
@@ -240,15 +268,15 @@ impl UtilitiesScreen {
 
         if self.device.is_some() && !self.device.as_ref().unwrap().is_mac {
             let refresh_button_text = if self.loading {
-                "Loading..."
+                t!("utilities_loading")
             } else {
-                "Refresh Installed Apps"
+                t!("utilities_refresh_installed_apps")
             };
 
             let trust_button_text = if self.trust_loading {
-                "Pairing..."
+                t!("utilities_pairing")
             } else {
-                "Trust Device"
+                t!("utilities_trust_device")
             };
 
             content = content.push(
@@ -265,7 +293,7 @@ impl UtilitiesScreen {
                         .on_press_maybe(if self.loading {
                             None
                         } else {
-                            Some(Message::RefreshApps)
+                            Some(Message::RefreshApps(self.rppairing_enabled))
                         })
                         .style(appearance::s_button)
                         .width(iced::Length::Fill),
@@ -273,6 +301,12 @@ impl UtilitiesScreen {
                 .spacing(appearance::THEME_PADDING),
             );
         }
+
+        let toggle = toggler(self.rppairing_enabled)
+            .label(t!("utilities_use_remote_pairing"))
+            .on_toggle(Message::ToggleRPPairing);
+
+        content = content.push(toggle);
 
         if !self.installed_apps.is_empty() {
             content = content
@@ -291,7 +325,7 @@ impl UtilitiesScreen {
                         ))
                         .size(14)
                         .width(iced::Length::Fill),
-                        button(text("Install Pairing").align_x(Center))
+                        button(text(t!("utilities_install_pairing")).align_x(Center))
                             .on_press(Message::InstallPairingFile(app.clone()))
                             .style(appearance::s_button)
                     ]
@@ -314,8 +348,6 @@ impl UtilitiesScreen {
     }
 
     fn app_key(app: &SignerAppReal) -> String {
-        app.bundle_id
-            .clone()
-            .unwrap_or_else(|| app.app.to_string())
+        app.bundle_id.clone().unwrap_or_else(|| app.app.to_string())
     }
 }

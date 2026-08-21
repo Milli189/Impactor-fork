@@ -35,7 +35,8 @@ pub(crate) fn default_window_settings() -> window::Settings {
     let platform_specific = window::settings::PlatformSpecific::default();
 
     window::Settings {
-        size: iced::Size::new(575.0, 410.0),
+        // Sized to fit the installer screen (the tallest) without scrolling.
+        size: iced::Size::new(575.0, 475.0),
         position: window::Position::Centered,
         exit_on_close_request: false,
         resizable: false,
@@ -49,7 +50,7 @@ fn load_window_icon() -> window::Icon {
     let bytes = include_bytes!(
         "../../../package/linux/icons/hicolor/64x64/apps/dev.khcrysalis.PlumeImpactor.png"
     );
-    let image = image::load_from_memory(bytes)
+    let image = image::load_from_memory_with_format(bytes, image::ImageFormat::Png)
         .expect("Failed to load icon bytes")
         .to_rgba8();
     let (width, height) = image.dimensions();
@@ -60,7 +61,9 @@ pub fn get_data_path() -> PathBuf {
     let base = if cfg!(windows) {
         env::var("APPDATA").unwrap()
     } else {
-        env::var("HOME").unwrap() + "/.config"
+        env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
+            env::var("HOME").unwrap() + "/.config"
+        })
     };
 
     let dir = Path::new(&base).join("PlumeImpactor");

@@ -12,14 +12,14 @@ pub(crate) use fonts::{
 };
 pub(crate) use picklist::s_pick_list;
 
-pub(crate) const THEME_CORNER_RADIUS: f32 = 8.0;
+pub(crate) const THEME_CORNER_RADIUS: f32 = 4.0;
 pub(crate) const THEME_FONT_SIZE: f32 = 12.0;
 pub(crate) const THEME_PADDING: f32 = 9.0;
 pub(crate) const THEME_ICON_SIZE: f32 = 12.0;
 
 pub(crate) fn p_font() -> iced::Font {
     iced::Font {
-        family: iced::font::Family::Monospace,
+        family: iced::font::Family::Name("Hack".into()),
         weight: iced::font::Weight::Normal,
         stretch: iced::font::Stretch::Normal,
         style: iced::font::Style::Normal,

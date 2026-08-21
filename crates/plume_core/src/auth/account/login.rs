@@ -2,8 +2,7 @@ use omnisette::AnisetteConfiguration;
 use plist::{Dictionary, Value};
 use reqwest::header::{HeaderMap, HeaderValue};
 use sha2::{Digest, Sha256};
-use srp::client::{SrpClient, SrpClientVerifier};
-use srp::groups::G_2048;
+use srp::groups::G2048;
 
 use crate::Error;
 
@@ -11,7 +10,8 @@ use crate::auth::account::{check_error, parse_response};
 use crate::auth::anisette_data::AnisetteData;
 use crate::auth::{
     Account, ChallengeRequest, ChallengeRequestBody, GSA_ENDPOINT, InitRequest, InitRequestBody,
-    LoginState, RequestHeader,
+    LoginState, RequestHeader, TrustedPhoneNumber, TwoFactorAction, TwoFactorMethod,
+    TwoFactorRequest,
 };
 
 #[macro_export]
@@ -46,7 +46,7 @@ macro_rules! plist_get_string {
 impl Account {
     pub async fn login(
         appleid_closure: impl Fn() -> Result<(String, String), String>,
-        tfa_closure: impl Fn() -> Result<String, String>,
+        tfa_closure: impl Fn(TwoFactorRequest) -> Result<TwoFactorAction, String>,
         config: AnisetteConfiguration,
     ) -> Result<Account, Error> {
         let anisette = AnisetteData::new(config).await?;
@@ -55,7 +55,7 @@ impl Account {
 
     pub async fn login_with_anisette<
         F: Fn() -> Result<(String, String), String>,
-        G: Fn() -> Result<String, String>,
+        G: Fn(TwoFactorRequest) -> Result<TwoFactorAction, String>,
     >(
         appleid_closure: F,
         tfa_closure: G,
@@ -67,30 +67,63 @@ impl Account {
         })?;
 
         let mut response = _self.login_email_pass(&username, &password).await?;
+        // Cached so the caller can be offered an SMS fallback even when a trusted
+        // device handled the push. Fetched lazily the first time 2FA is needed.
+        let mut trusted_phone_numbers: Vec<TrustedPhoneNumber> = Vec::new();
 
         loop {
             match response {
-                LoginState::NeedsDevice2FA => response = _self.send_2fa_to_devices().await?,
-                LoginState::Needs2FAVerification => {
-                    response = _self
-                        .verify_2fa(tfa_closure().map_err(|e| {
-                            Error::AuthSrpWithMessage(0, format!("Failed to get 2FA code: {}", e))
-                        })?)
-                        .await?
+                LoginState::NeedsDevice2FA => {
+                    response = _self.send_2fa_to_devices().await?;
+                    if trusted_phone_numbers.is_empty() {
+                        if let Ok(extras) = _self.get_auth_extras().await {
+                            trusted_phone_numbers = extras.trusted_phone_numbers;
+                        }
+                    }
                 }
-                LoginState::NeedsSMS2FA => response = _self.send_sms_2fa_to_devices(1).await?,
+                LoginState::Needs2FAVerification => {
+                    let request = TwoFactorRequest {
+                        method: TwoFactorMethod::Device,
+                        trusted_phone_numbers: trusted_phone_numbers.clone(),
+                    };
+                    match tfa_closure(request).map_err(|e| {
+                        Error::AuthSrpWithMessage(0, format!("Failed to get 2FA code: {}", e))
+                    })? {
+                        TwoFactorAction::SubmitCode(code) => {
+                            response = _self.verify_2fa(code).await?
+                        }
+                        TwoFactorAction::SendSms(id) => {
+                            response = _self.send_sms_2fa_to_devices(id).await?
+                        }
+                    }
+                }
+                LoginState::NeedsSMS2FA => {
+                    if trusted_phone_numbers.is_empty() {
+                        if let Ok(extras) = _self.get_auth_extras().await {
+                            trusted_phone_numbers = extras.trusted_phone_numbers;
+                        }
+                    }
+                    let id = trusted_phone_numbers.first().map(|p| p.id).unwrap_or(1);
+                    response = _self.send_sms_2fa_to_devices(id).await?;
+                }
                 LoginState::NeedsSMS2FAVerification(body) => {
-                    response = _self
-                        .verify_sms_2fa(
-                            tfa_closure().map_err(|e| {
-                                Error::AuthSrpWithMessage(
-                                    0,
-                                    format!("Failed to get SMS 2FA code: {}", e),
-                                )
-                            })?,
-                            body,
+                    let request = TwoFactorRequest {
+                        method: TwoFactorMethod::Sms,
+                        trusted_phone_numbers: trusted_phone_numbers.clone(),
+                    };
+                    match tfa_closure(request).map_err(|e| {
+                        Error::AuthSrpWithMessage(
+                            0,
+                            format!("Failed to get SMS 2FA code: {}", e),
                         )
-                        .await?
+                    })? {
+                        TwoFactorAction::SubmitCode(code) => {
+                            response = _self.verify_sms_2fa(code, body).await?
+                        }
+                        TwoFactorAction::SendSms(id) => {
+                            response = _self.send_sms_2fa_to_devices(id).await?
+                        }
+                    }
                 }
                 LoginState::NeedsLogin => {
                     response = _self.login_email_pass(&username, &password).await?
@@ -112,8 +145,8 @@ impl Account {
         username: &str,
         password: &str,
     ) -> Result<LoginState, Error> {
-        let username_for_spd = username.to_string();
-        let srp_client = SrpClient::<Sha256>::new(&G_2048);
+        let username_for_spd = username.to_string().to_lowercase();
+        let srp_client = srp::Client::<G2048, Sha256>::new_with_options(false);
         let a: Vec<u8> = (0..32).map(|_| rand::random::<u8>()).collect();
         let a_pub = srp_client.compute_public_ephemeral(&a);
 
@@ -142,7 +175,7 @@ impl Account {
             cpd: anisette.to_plist(true, false, false),
             operation: "init".to_string(),
             ps: vec!["s2k".to_string(), "s2k_fo".to_string()],
-            username: username.to_string(),
+            username: username_for_spd.clone(),
         };
 
         let init_packet = InitRequest {
@@ -177,10 +210,10 @@ impl Account {
             salt,
             iters as u32,
             &mut password_buf,
-        );
+        )?;
 
-        let verifier: SrpClientVerifier<Sha256> = srp_client
-            .process_reply(&a, username.as_bytes(), &password_buf, salt, b_pub)
+        let verifier = srp_client
+            .process_reply(&a, username_for_spd.as_bytes(), &password_buf, salt, b_pub)
             .unwrap();
 
         let challenge_body = ChallengeRequestBody {
@@ -188,7 +221,7 @@ impl Account {
             c: c.to_string(),
             cpd: anisette.to_plist(true, false, false),
             operation: "complete".to_string(),
-            username: username.to_string(),
+            username: username_for_spd.clone(),
         };
 
         let challenge_packet = ChallengeRequest {
@@ -198,6 +231,8 @@ impl Account {
 
         let mut buffer = Vec::new();
         plist::to_writer_xml(&mut buffer, &challenge_packet)?;
+
+        gsa_headers.insert("Connection", HeaderValue::from_static("close"));
 
         let res = self
             .client
